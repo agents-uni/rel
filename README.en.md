@@ -1,4 +1,7 @@
 <p align="center">
+  <img src="assets/logo.png" alt="Agents Uni" width="120" />
+</p>
+<p align="center">
   <strong>@agents-uni/rel</strong><br/>
   <em>Multi-dimensional Relationship Engine for Agent Systems</em>
 </p>
