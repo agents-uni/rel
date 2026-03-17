@@ -12,9 +12,9 @@
 
 ---
 
-> **Not just weighted edges. Living, multi-dimensional entities.**
+> **不只是权重边，而是活的、多维的实体。**
 >
-> *[English](#english) | 中文*
+> *[English](README.en.md) | 中文*
 
 ## 为什么需要 @agents-uni/rel？
 
@@ -595,74 +595,11 @@ export { yourTemplate } from './your-template.js';
 
 ---
 
-<a name="english"></a>
+## 相关项目
 
-## English
-
-**@agents-uni/rel** is a zero-dependency, multi-dimensional relationship engine for agent systems.
-
-Traditional agent relationships are single weighted edges. This library models relationships as **living entities** with:
-
-- **Multiple dimensions** (trust, authority, rivalry, affinity -- each independent)
-- **Event sourcing** (all mutations through auditable `RelationshipEvent`s)
-- **Memory** (short-term events consolidate into long-term patterns, key moments, and summaries)
-- **Emergence** (undeclared relationships auto-detected from interaction patterns)
-- **Social network analysis** (influence ranking, community detection, structural analysis)
-
-### Quick Example
-
-```typescript
-import { RelationshipGraph, EvolutionEngine, EmergenceDetector } from '@agents-uni/rel';
-
-const graph = new RelationshipGraph();
-graph.addFromSeed({ from: 'alice', to: 'bob', type: 'ally' });
-
-const engine = new EvolutionEngine(graph);
-engine.processEvent('alice', 'bob', 'alliance.supported');
-// trust: 0.60 -> 0.68, loyalty: 0.40 -> 0.50
-
-const detector = new EmergenceDetector(graph);
-// After 3+ collaboration events between unknown pairs, a relationship emerges automatically
-```
-
-### Key Classes
-
-| Class | Purpose |
-|-------|---------|
-| `RelationshipGraph` | Multi-dimensional directed graph with event processing, pathfinding, decay, serialization |
-| `EvolutionEngine` | Maps events to template rules, computes dimension adjustments |
-| `MemoryConsolidator` | Compresses short-term events into long-term patterns and summaries |
-| `EmergenceDetector` | Auto-discovers relationships from interaction patterns (5 builtin + custom rules) |
-| `OpenClawMemoryAdapter` | Reads OpenClaw session files, converts to `RelationshipEvent`s |
-
-### 16 Built-in Templates
-
-`superior`, `subordinate`, `peer`, `competitive`, `ally`, `rival`, `mentor`, `advisor`, `reviewer`, `delegate`, `serves`, `collaborates`, `supervises`, `competes`, `audits`, `advises`
-
-Each template includes default dimensions and evolution rules triggered by event patterns (glob matching supported, e.g. `task.*`).
-
-### Contributing Templates
-
-Templates live in `src/templates/builtin/` — one file per template. To add a new one:
-
-1. Create `src/templates/builtin/your-template.ts` exporting a `RelationshipTemplate`
-2. Re-export from `src/templates/builtin/index.ts`
-3. Run `npm test` to verify
-4. Submit a PR titled `feat(template): add your-template`
-
-See the Chinese section above for detailed guidelines on dimension design and rule values.
-
-### Full API
-
-See the Chinese documentation above for complete API reference with method signatures.
-
----
-
-## 相关项目 / Related Projects
-
-- [**@agents-uni/core**](https://github.com/agents-uni/core) -- Agent 组织协议层 / Agent organization protocol layer
-- [**@agents-uni/zhenhuan**](https://github.com/agents-uni/zhenhuan) -- 甄嬛后宫 Agent 竞技 / Palace drama agent competition
-- [**OpenClaw**](https://github.com/anthropics/openclaw) -- Agent 运行时 / Agent runtime
+- [**@agents-uni/core**](https://github.com/agents-uni/core) -- Agent 组织协议层
+- [**@agents-uni/zhenhuan**](https://github.com/agents-uni/zhenhuan) -- 甄嬛后宫 Agent 竞技
+- [**OpenClaw**](https://github.com/anthropics/openclaw) -- Agent 运行时
 
 ## License
 
