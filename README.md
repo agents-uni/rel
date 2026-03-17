@@ -528,6 +528,64 @@ const seed2 = fromYamlObject({ from: 'a', to: 'b', type: 'peer', weight: 0.5 });
           +-------------------+
 ```
 
+## 贡献关系模板
+
+我们欢迎社区贡献新的关系模板！每个模板是一个独立文件，定义一种关系的维度预设和演化规则。
+
+### 模板文件结构
+
+```
+src/templates/builtin/
+├── index.ts          ← 汇总导出
+├── ally.ts           ← 联盟模板
+├── rival.ts          ← 对手模板
+├── mentor.ts         ← 导师模板
+├── ...               ← 其他内置模板
+└── your-template.ts  ← 你的新模板
+```
+
+### 步骤
+
+1. **Fork 并 clone** 本仓库
+2. **创建模板文件** `src/templates/builtin/your-template.ts`：
+
+```typescript
+import type { RelationshipTemplate } from '../../schema/types.js';
+
+export const yourTemplate: RelationshipTemplate = {
+  name: 'your-template',
+  description: '简短描述这种关系',
+  dimensions: [
+    // 定义 2-4 个维度，value 范围 [-1, +1]
+    { type: 'trust', value: 0.5 },
+    { type: 'custom_dim', value: 0.3, volatility: 0.4 },
+  ],
+  rules: [
+    // 定义事件 -> 维度调整规则，支持 glob (如 task.*)
+    { on: 'event.type', adjust: { trust: 0.05 }, description: '可选描述' },
+  ],
+  tags: ['optional-tag'],  // 可选
+};
+```
+
+3. **在 `builtin/index.ts` 中导出**：
+
+```typescript
+export { yourTemplate } from './your-template.js';
+```
+
+4. **运行测试** `npm test` — 确保所有 138+ 测试通过
+5. **提交 PR**，标题格式：`feat(template): add your-template`
+
+### 模板设计指南
+
+- **维度**：选择 2-4 个最能描述该关系的维度。优先复用已有维度类型（trust, authority, rivalry, affinity, respect, loyalty）
+- **规则**：每条规则描述一种事件如何影响维度。调整值通常在 `±0.03 ~ ±0.15` 范围内
+- **命名**：使用小写 kebab-case（如 `trade-partner`）
+- **测试**：内置模板通过 `templates.test.ts` 自动测试，确保每个模板都有 name、dimensions、rules
+
+---
+
 ## 设计哲学
 
 1. **关系是一等公民** -- 不是图的附属品，而是有自己状态、记忆、历史的实体
@@ -582,6 +640,17 @@ const detector = new EmergenceDetector(graph);
 `superior`, `subordinate`, `peer`, `competitive`, `ally`, `rival`, `mentor`, `advisor`, `reviewer`, `delegate`, `serves`, `collaborates`, `supervises`, `competes`, `audits`, `advises`
 
 Each template includes default dimensions and evolution rules triggered by event patterns (glob matching supported, e.g. `task.*`).
+
+### Contributing Templates
+
+Templates live in `src/templates/builtin/` — one file per template. To add a new one:
+
+1. Create `src/templates/builtin/your-template.ts` exporting a `RelationshipTemplate`
+2. Re-export from `src/templates/builtin/index.ts`
+3. Run `npm test` to verify
+4. Submit a PR titled `feat(template): add your-template`
+
+See the Chinese section above for detailed guidelines on dimension design and rule values.
 
 ### Full API
 
