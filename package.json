@@ -1,0 +1,53 @@
+{
+  "name": "@agents-uni/rel",
+  "version": "0.1.0",
+  "description": "Multi-dimensional relationship engine for agent systems — event-sourced, memory-backed, evolvable",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -p tsconfig.build.json --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "agents",
+    "relationships",
+    "graph",
+    "multi-agent",
+    "social-network",
+    "event-sourced",
+    "memory",
+    "evolution",
+    "ai-agents"
+  ],
+  "author": "agents-uni",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/agents-uni/rel.git"
+  },
+  "homepage": "https://github.com/agents-uni/rel#readme",
+  "bugs": {
+    "url": "https://github.com/agents-uni/rel/issues"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
