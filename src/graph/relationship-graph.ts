@@ -15,7 +15,12 @@ import type {
   RelationshipMemory,
   PathResult,
 } from '../schema/types.js';
+import type {
+  VisualizationData,
+  VisualizationOptions,
+} from '../schema/visualization.js';
 import { resolveTemplate } from '../templates/registry.js';
+import { computeInfluence, detectClusters } from '../query/analyzer.js';
 
 let nextId = 0;
 function generateId(): string {
@@ -428,5 +433,82 @@ export class RelationshipGraph {
     }
 
     return result;
+  }
+
+  // ─── Visualization ─────────────────────────────────
+
+  /**
+   * Convert graph to a standardized visualization payload.
+   * Combines influence, cluster, and structural data into
+   * a format suitable for vis-network or any graph renderer.
+   */
+  toVisualizationData(options?: VisualizationOptions): VisualizationData {
+    const meta = options?.agentMetadata ?? {};
+    const clusterDim = options?.clusterDimensionType ?? 'trust';
+    const clusterMin = options?.clusterMinValue ?? 0.2;
+
+    const agentIds = this.getAllAgentIds();
+    const influenceScores = computeInfluence(this, clusterDim);
+    const clusterResult = detectClusters(this, clusterDim, clusterMin);
+
+    // Build agent→cluster lookup
+    const agentCluster = new Map<string, string>();
+    for (const cluster of clusterResult.clusters) {
+      for (const member of cluster.members) {
+        agentCluster.set(member, cluster.id);
+      }
+    }
+
+    // Build influence lookup
+    const influenceMap = new Map<string, number>();
+    for (const score of influenceScores) {
+      influenceMap.set(score.agentId, score.score);
+    }
+
+    // Nodes
+    const nodes = agentIds.map(id => {
+      const agentMeta = meta[id];
+      return {
+        id,
+        label: agentMeta?.name ?? id,
+        role: agentMeta?.role,
+        department: agentMeta?.department,
+        influence: influenceMap.get(id) ?? 0,
+        connectionCount: this.getAll(id).length,
+        clusterId: agentCluster.get(id),
+      };
+    });
+
+    // Edges
+    const edges = this.getAllRelationships().map(rel => {
+      let weightedSum = 0;
+      let confidenceSum = 0;
+      for (const dim of rel.dimensions) {
+        weightedSum += Math.abs(dim.value) * dim.confidence;
+        confidenceSum += dim.confidence;
+      }
+      const strength = confidenceSum > 0 ? weightedSum / confidenceSum : 0;
+
+      return {
+        id: rel.id,
+        from: rel.from,
+        to: rel.to,
+        dimensions: rel.dimensions.map(d => ({
+          type: d.type,
+          value: d.value,
+          confidence: d.confidence,
+        })),
+        strength: Math.min(1, strength),
+        valence: rel.memory.valence,
+        interactionCount: rel.memory.longTerm.interactionCount,
+      };
+    });
+
+    return {
+      nodes,
+      edges,
+      clusters: clusterResult.clusters,
+      generatedAt: new Date().toISOString(),
+    };
   }
 }

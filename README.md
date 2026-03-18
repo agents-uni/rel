@@ -482,6 +482,44 @@ const seed2 = fromYamlObject({ from: 'a', to: 'b', type: 'peer', weight: 0.5 });
 | `queryRelationships(graph, filter)` | 复杂查询 |
 | `formatRelationshipContext(ctx)` | Markdown 关系报告 |
 | `generateSoulRelationshipSection(ctx, lang?)` | SOUL.md 关系 section |
+| `generateReport(graph)` | 生成完整关系网络报告 |
+
+### 可视化数据
+
+将关系图导出为前端可视化友好的格式（节点 + 边 + 集群），可直接用于 D3、Cytoscape 等图形库：
+
+```typescript
+import { RelationshipGraph } from '@agents-uni/rel';
+
+const graph = new RelationshipGraph([...]);
+const vizData = graph.toVisualizationData({
+  agentMetadata: { alice: { name: 'Alice', role: 'Engineer' } }
+});
+// vizData: { nodes, edges, clusters, generatedAt }
+```
+
+- **nodes** -- 包含 agent ID、标签、元数据（如 name、role）、度数统计
+- **edges** -- 包含来源/目标、各维度权重、情感基调、来源类型
+- **clusters** -- 社区检测结果，带成员列表和内聚度
+- **generatedAt** -- 数据生成时间戳
+
+### 报告生成
+
+一键生成完整的关系网络分析报告，包含结构摘要、影响力排名、社区划分、热点关系等：
+
+```typescript
+import { generateReport } from '@agents-uni/rel';
+
+const report = generateReport(graph);
+// report: { summary, structure, influenceRanking, clusters, hotspots, generatedAt }
+```
+
+- **summary** -- 自然语言网络概述（agent 数、关系数、整体基调）
+- **structure** -- 结构分析结果（密度、平均度、中心节点等）
+- **influenceRanking** -- 按影响力排序的 agent 列表
+- **clusters** -- 社区划分及各社区内聚度
+- **hotspots** -- 高活跃度 / 高波动性的关键关系
+- **generatedAt** -- 报告生成时间戳
 
 ---
 

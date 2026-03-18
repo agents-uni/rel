@@ -477,6 +477,44 @@ const seed2 = fromYamlObject({ from: 'a', to: 'b', type: 'peer', weight: 0.5 });
 | `queryRelationships(graph, filter)` | Complex queries |
 | `formatRelationshipContext(ctx)` | Markdown relationship report |
 | `generateSoulRelationshipSection(ctx, lang?)` | SOUL.md relationship section |
+| `generateReport(graph)` | Generate full relationship network report |
+
+### Visualization Data
+
+Export the relationship graph into a frontend-friendly format (nodes + edges + clusters), ready for use with D3, Cytoscape, or other graph visualization libraries:
+
+```typescript
+import { RelationshipGraph } from '@agents-uni/rel';
+
+const graph = new RelationshipGraph([...]);
+const vizData = graph.toVisualizationData({
+  agentMetadata: { alice: { name: 'Alice', role: 'Engineer' } }
+});
+// vizData: { nodes, edges, clusters, generatedAt }
+```
+
+- **nodes** -- Agent ID, labels, metadata (e.g., name, role), degree statistics
+- **edges** -- Source/target, per-dimension weights, emotional valence, origin type
+- **clusters** -- Community detection results with member lists and cohesion scores
+- **generatedAt** -- Timestamp of data generation
+
+### Report Generation
+
+Generate a comprehensive relationship network analysis report in one call, including structural summary, influence ranking, community partitions, and relationship hotspots:
+
+```typescript
+import { generateReport } from '@agents-uni/rel';
+
+const report = generateReport(graph);
+// report: { summary, structure, influenceRanking, clusters, hotspots, generatedAt }
+```
+
+- **summary** -- Natural language network overview (agent count, relationship count, overall valence)
+- **structure** -- Structural analysis results (density, average degree, hub nodes, etc.)
+- **influenceRanking** -- Agents sorted by influence score
+- **clusters** -- Community partitions with cohesion scores per cluster
+- **hotspots** -- High-activity / high-volatility key relationships
+- **generatedAt** -- Report generation timestamp
 
 ---
 

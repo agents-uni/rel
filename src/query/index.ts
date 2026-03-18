@@ -10,3 +10,10 @@ export type {
   StructuralAnalysis,
   QueryFilter,
 } from './analyzer.js';
+
+export { generateReport } from './report.js';
+
+export type {
+  RelationshipReport,
+  RelationshipHotspot,
+} from './report.js';

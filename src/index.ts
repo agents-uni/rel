@@ -54,6 +54,11 @@ export type {
   RelationshipQueryResult,
   PathResult,
   ClusterResult,
+  VisualizationNode,
+  VisualizationEdge,
+  VisualizationCluster,
+  VisualizationData,
+  VisualizationOptions,
 } from './schema/index.js';
 
 // ── Graph ───────────────────────────────────────────
@@ -87,8 +92,9 @@ export {
   detectClusters,
   analyzeStructure,
   queryRelationships,
+  generateReport,
 } from './query/index.js';
-export type { InfluenceScore, StructuralAnalysis, QueryFilter } from './query/index.js';
+export type { InfluenceScore, StructuralAnalysis, QueryFilter, RelationshipReport, RelationshipHotspot } from './query/index.js';
 
 // ── Adapters ────────────────────────────────────────
 export {

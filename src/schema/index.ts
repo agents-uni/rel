@@ -17,3 +17,11 @@ export type {
   PathResult,
   ClusterResult,
 } from './types.js';
+
+export type {
+  VisualizationNode,
+  VisualizationEdge,
+  VisualizationCluster,
+  VisualizationData,
+  VisualizationOptions,
+} from './visualization.js';
