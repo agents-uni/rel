@@ -10,7 +10,7 @@
   <a href="https://www.npmjs.com/package/@agents-uni/rel"><img src="https://img.shields.io/npm/v/@agents-uni/rel.svg" alt="npm version" /></a>
   <a href="https://github.com/agents-uni/rel/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@agents-uni/rel.svg" alt="license" /></a>
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="zero dependencies" />
-  <img src="https://img.shields.io/badge/tests-138%20passed-brightgreen" alt="tests" />
+  <img src="https://img.shields.io/badge/tests-163%20passed-brightgreen" alt="tests" />
 </p>
 
 ---
@@ -427,7 +427,7 @@ const seed2 = fromYamlObject({ from: 'a', to: 'b', type: 'peer', weight: 0.5 });
 | 类 | 构造参数 | 描述 |
 |----|---------|------|
 | `RelationshipGraph` | `(seeds?, options?)` | 多维有向关系图 |
-| `EvolutionEngine` | `(graph)` | 事件 -> 模板规则 -> 维度调整 |
+| `EvolutionEngine` | `(graph, options?)` | 事件 -> 模板规则 -> 维度调整（支持 traits、migration） |
 | `MemoryConsolidator` | `(options?)` | 短期 -> 长期模式 + 摘要 |
 | `EmergenceDetector` | `(graph, options?)` | 交互模式 -> 新关系 |
 | `OpenClawMemoryAdapter` | `(options?)` | OpenClaw session -> Event |
@@ -463,6 +463,8 @@ const seed2 = fromYamlObject({ from: 'a', to: 'b', type: 'peer', weight: 0.5 });
 | `processEvent(from, to, eventType, options?)` | 处理双人事件，返回 `EvolutionResult[]` |
 | `processGroupEvent(agentIds, eventType, options?)` | 多人事件（两两配对） |
 | `addGlobalRule(rule)` | 添加全局演化规则 |
+| `setTraitRegistry(traits)` | 更新 agent 特质注册表 |
+| `getTraitRegistry()` | 获取当前特质注册表 |
 
 ### 工具函数
 
@@ -483,6 +485,10 @@ const seed2 = fromYamlObject({ from: 'a', to: 'b', type: 'peer', weight: 0.5 });
 | `formatRelationshipContext(ctx)` | Markdown 关系报告 |
 | `generateSoulRelationshipSection(ctx, lang?)` | SOUL.md 关系 section |
 | `generateReport(graph)` | 生成完整关系网络报告 |
+| `applyTraitModifiers(adjust, from, to, event, traits)` | 基于 agent 特质修正维度增量 |
+| `checkMigration(relationship)` | 检查关系是否应迁移到其他模板 |
+| `executeMigration(rel, from, to)` | 执行关系模板迁移 |
+| `resolveImpactFromTemplates(event, rel)` | 从模板规则解析事件影响 |
 
 ### 可视化数据
 
@@ -520,6 +526,84 @@ const report = generateReport(graph);
 - **clusters** -- 社区划分及各社区内聚度
 - **hotspots** -- 高活跃度 / 高波动性的关键关系
 - **generatedAt** -- 报告生成时间戳
+
+---
+
+## 关系迁移
+
+当关系的维度值越过特定阈值时，关系类型可以自动迁移。例如 ally 在 trust 跌破 -0.2 时自动变成 rival：
+
+```typescript
+import { EvolutionEngine } from '@agents-uni/rel';
+
+const engine = new EvolutionEngine(graph, {
+  onMigration: (result, relId) => {
+    console.log(`${relId}: ${result.fromTemplate} → ${result.toTemplate}`);
+  },
+});
+
+// 连续背叛事件导致 trust 暴跌
+engine.processEvent('alice', 'bob', 'alliance.betrayed');
+// result.migration = { migrated: true, fromTemplate: 'ally', toTemplate: 'rival' }
+```
+
+内置迁移规则：
+
+| 来源 | 目标 | 触发条件 |
+|------|------|---------|
+| ally | rival | trust < -0.2 |
+| ally | peer | loyalty < 0.1 且 trust > 0.1 |
+| peer | ally | trust > 0.7 且 affinity > 0.6 |
+| peer | competitive | trust < 0.0 且 respect < 0.2 |
+| rival | ally | trust > 0.5 且 rivalry < 0.2 |
+| competitive | rival | rivalry > 0.8 且 trust < -0.1 |
+| competitive | peer | rivalry < 0.15 且 respect > 0.5 |
+
+自定义模板也可以定义 `migrations` 字段。
+
+## 特质感知演化
+
+Agent 的性格特质会影响关系维度的变化幅度：
+
+```typescript
+const engine = new EvolutionEngine(graph, {
+  traits: {
+    alice: { empathy: 0.9, analytical: 0.7 },
+    bob: { ambition: 0.8, deception: 0.6 },
+  },
+});
+
+// 高 empathy 的 alice 在 conflict 事件中 trust 下降更少
+engine.processEvent('alice', 'bob', 'conflict.escalated');
+```
+
+内置特质规则：
+- **empathy ≥ 0.7**（source）：负面维度增量 × 0.6（更宽容）
+- **ambition ≥ 0.8**（target）：rivalry 和 competition 增量 × 1.4（更激进）
+- **deception ≥ 0.7**（source）：trust 增量 × 0.5（不易获信）
+
+## 关系生成
+
+从自然语言描述自动生成关系种子：
+
+```typescript
+import { RelationshipGenerator, ScenarioSuggester } from '@agents-uni/rel';
+
+// 生成关系
+const generator = new RelationshipGenerator();
+const result = await generator.generate('甄嬛传后宫', agents, {
+  type: 'competitive',
+  language: 'zh',
+});
+// result.seeds: [{ from, to, type, dimensions }]
+// result.reasoning: ['华妃 rank 最高，与低 rank 嫔妃形成 superior 关系', ...]
+
+// 场景建议
+const suggester = new ScenarioSuggester(graph);
+const events = suggester.suggest(5);
+// [{ eventType: 'conflict.escalated', from: 'zhenhuan', to: 'huafei',
+//    reason: 'High rivalry tension', dramaPotential: 0.85 }]
+```
 
 ---
 
@@ -615,7 +699,7 @@ export const yourTemplate: RelationshipTemplate = {
 export { yourTemplate } from './your-template.js';
 ```
 
-4. **运行测试** `npm test` — 确保所有 138+ 测试通过
+4. **运行测试** `npm test` — 确保所有 163+ 测试通过
 5. **提交 PR**，标题格式：`feat(template): add your-template`
 
 ### 模板设计指南
@@ -639,6 +723,7 @@ export { yourTemplate } from './your-template.js';
 ## 相关项目
 
 - [**@agents-uni/core**](https://github.com/agents-uni/core) -- Agent 组织协议层
+- [**@agents-uni/unis**](https://github.com/agents-uni/unis) -- 宇宙模板仓库（5 个开箱即用场景）
 - [**@agents-uni/zhenhuan**](https://github.com/agents-uni/zhenhuan) -- 甄嬛后宫 Agent 竞技
 - [**OpenClaw**](https://github.com/anthropics/openclaw) -- Agent 运行时
 

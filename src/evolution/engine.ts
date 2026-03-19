@@ -4,11 +4,24 @@
  * The engine matches incoming events against relationship templates'
  * evolution rules, computes dimension deltas, and applies them through
  * the graph's event-sourced pipeline.
+ *
+ * Pipeline (post-enhancement):
+ * 1. Find relationships between agents
+ * 2. Collect rules from templates + global rules → totalAdjust
+ * 3. If totalAdjust is empty → resolveImpactFromTemplates() fills defaults
+ * 4. applyTraitModifiers() — use agent traits to adjust deltas
+ * 5. Create event → graph.applyEvent()
+ * 6. checkMigration() — check if relationship type should transition
+ * 7. Return EvolutionResult (+ optional migration info)
  */
 
-import type { RelationshipEvent, EvolutionRule } from '../schema/types.js';
+import type { RelationshipEvent, EvolutionRule, TraitRegistry } from '../schema/types.js';
 import type { RelationshipGraph } from '../graph/relationship-graph.js';
 import { resolveTemplate } from '../templates/registry.js';
+import { applyTraitModifiers } from './trait-modifier.js';
+import { resolveImpactFromTemplates } from './impact-resolver.js';
+import { checkMigration, executeMigration } from './migration.js';
+import type { MigrationResult } from './migration.js';
 
 export interface EvolutionResult {
   relationshipId: string;
@@ -16,6 +29,15 @@ export interface EvolutionResult {
   to: string;
   appliedRules: string[];
   dimensionChanges: Record<string, { before: number; after: number }>;
+  /** If a migration was triggered, this field describes it */
+  migration?: MigrationResult;
+}
+
+export interface EvolutionEngineOptions {
+  /** Agent trait registry for trait-aware evolution */
+  traits?: TraitRegistry;
+  /** Callback invoked when a relationship type migrates */
+  onMigration?: (result: MigrationResult, relationshipId: string) => void;
 }
 
 /** Check if an event type matches a rule's "on" pattern (supports glob) */
@@ -35,12 +57,27 @@ function matchesEventType(eventType: string, rulePattern: string): boolean {
 export class EvolutionEngine {
   /** Custom rules applied to all relationships (in addition to template rules) */
   private globalRules: EvolutionRule[] = [];
+  private traitRegistry: TraitRegistry;
+  private onMigration?: (result: MigrationResult, relationshipId: string) => void;
 
-  constructor(private graph: RelationshipGraph) {}
+  constructor(private graph: RelationshipGraph, options?: EvolutionEngineOptions) {
+    this.traitRegistry = options?.traits ?? {};
+    this.onMigration = options?.onMigration;
+  }
 
   /** Add a global evolution rule that applies to all relationships */
   addGlobalRule(rule: EvolutionRule): void {
     this.globalRules.push(rule);
+  }
+
+  /** Update the trait registry (e.g., when new agents are loaded) */
+  setTraitRegistry(traits: TraitRegistry): void {
+    this.traitRegistry = traits;
+  }
+
+  /** Get the current trait registry */
+  getTraitRegistry(): TraitRegistry {
+    return this.traitRegistry;
   }
 
   /**
@@ -59,9 +96,9 @@ export class EvolutionEngine {
 
     for (const rel of rels) {
       const appliedRules: string[] = [];
-      const totalAdjust: Record<string, number> = {};
+      let totalAdjust: Record<string, number> = {};
 
-      // Collect rules from all dimension templates
+      // Step 2: Collect rules from all dimension templates
       const seenTemplates = new Set<string>();
       for (const dim of rel.dimensions) {
         if (seenTemplates.has(dim.type)) continue;
@@ -108,7 +145,26 @@ export class EvolutionEngine {
         }
       }
 
+      // Step 3: If totalAdjust is empty, resolve from templates
+      if (Object.keys(totalAdjust).length === 0) {
+        totalAdjust = resolveImpactFromTemplates(eventType, rel);
+        if (Object.keys(totalAdjust).length > 0) {
+          appliedRules.push(`[auto-resolved] impact from templates for ${eventType}`);
+        }
+      }
+
       if (Object.keys(totalAdjust).length === 0) continue;
+
+      // Step 4: Apply trait modifiers
+      if (Object.keys(this.traitRegistry).length > 0) {
+        totalAdjust = applyTraitModifiers(
+          totalAdjust,
+          fromId,
+          toId,
+          eventType,
+          this.traitRegistry,
+        );
+      }
 
       // Record before values
       const dimensionChanges: Record<string, { before: number; after: number }> = {};
@@ -117,7 +173,7 @@ export class EvolutionEngine {
         dimensionChanges[dimType] = { before: dim?.value ?? 0, after: 0 };
       }
 
-      // Apply through event pipeline
+      // Step 5: Apply through event pipeline
       const event: RelationshipEvent = {
         id: `evt-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
         timestamp: new Date().toISOString(),
@@ -137,12 +193,26 @@ export class EvolutionEngine {
         dimensionChanges[dimType].after = dim?.value ?? 0;
       }
 
+      // Step 6: Check for migration
+      let migration: MigrationResult | undefined;
+      const migrationCheck = checkMigration(rel);
+      if (migrationCheck) {
+        migration = executeMigration(rel, migrationCheck.sourceTemplate, migrationCheck.rule.targetTemplate);
+        if (migration.migrated && migration.migrationEvent) {
+          // Record migration event in relationship memory
+          this.graph.applyEvent(rel.id, migration.migrationEvent);
+          // Invoke callback
+          this.onMigration?.(migration, rel.id);
+        }
+      }
+
       results.push({
         relationshipId: rel.id,
         from: rel.from,
         to: rel.to,
         appliedRules,
         dimensionChanges,
+        migration,
       });
     }
 

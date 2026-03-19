@@ -189,6 +189,8 @@ export interface RelationshipTemplate {
   rules: EvolutionRule[];
   /** Tags automatically applied */
   tags?: string[];
+  /** Optional migration rules — conditions under which this relationship type auto-transitions */
+  migrations?: MigrationRule[];
 }
 
 export interface EvolutionRule {
@@ -198,6 +200,51 @@ export interface EvolutionRule {
   adjust: Record<string, number>;
   /** Optional condition (simple expression) */
   condition?: string;
+  /** Optional description */
+  description?: string;
+}
+
+// ═══════════════════════════════════════════════════════
+//  Migration — automatic relationship type transitions
+// ═══════════════════════════════════════════════════════
+
+/** A rule that defines when a relationship should migrate to a different template */
+export interface MigrationRule {
+  /** Target template name to migrate to */
+  targetTemplate: string;
+  /** ALL conditions must be satisfied for migration to trigger */
+  when: MigrationCondition[];
+}
+
+/** A single condition for a migration rule */
+export interface MigrationCondition {
+  /** Dimension to check */
+  dimension: string;
+  /** Comparison operator */
+  operator: 'below' | 'above';
+  /** Threshold value */
+  value: number;
+}
+
+// ═══════════════════════════════════════════════════════
+//  Trait-aware evolution
+// ═══════════════════════════════════════════════════════
+
+/** Registry mapping agent IDs to their trait values */
+export type TraitRegistry = Record<string, Record<string, number>>;
+
+/** A rule that modifies dimension deltas based on agent traits */
+export interface TraitModifierRule {
+  /** Which trait to check */
+  trait: string;
+  /** Minimum trait value for this rule to apply */
+  threshold: number;
+  /** Whether to check the source agent, target agent, or both */
+  appliesTo: 'source' | 'target' | 'both';
+  /** Which dimension types this modifier affects (empty = all) */
+  affectedDimensions?: string[];
+  /** Multiplier applied to the delta (e.g., 0.6 suppresses, 1.4 amplifies) */
+  multiplier: number;
   /** Optional description */
   description?: string;
 }

@@ -13,4 +13,17 @@ export const ally: RelationshipTemplate = {
     { on: 'alliance.betrayed', adjust: { trust: -0.4, loyalty: -0.5, affinity: -0.3 }, description: 'Betrayal devastates alliance' },
     { on: 'collaboration.success', adjust: { trust: 0.05, affinity: 0.03 } },
   ],
+  migrations: [
+    {
+      targetTemplate: 'rival',
+      when: [{ dimension: 'trust', operator: 'below', value: -0.2 }],
+    },
+    {
+      targetTemplate: 'peer',
+      when: [
+        { dimension: 'loyalty', operator: 'below', value: 0.1 },
+        { dimension: 'trust', operator: 'above', value: 0.1 },
+      ],
+    },
+  ],
 };

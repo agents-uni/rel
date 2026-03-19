@@ -13,4 +13,20 @@ export const peer: RelationshipTemplate = {
     { on: 'collaboration.failure', adjust: { trust: -0.04, affinity: -0.02 } },
     { on: 'knowledge.shared', adjust: { respect: 0.05, affinity: 0.03 } },
   ],
+  migrations: [
+    {
+      targetTemplate: 'ally',
+      when: [
+        { dimension: 'trust', operator: 'above', value: 0.7 },
+        { dimension: 'affinity', operator: 'above', value: 0.6 },
+      ],
+    },
+    {
+      targetTemplate: 'competitive',
+      when: [
+        { dimension: 'trust', operator: 'below', value: 0.0 },
+        { dimension: 'respect', operator: 'below', value: 0.2 },
+      ],
+    },
+  ],
 };

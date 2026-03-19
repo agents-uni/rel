@@ -49,6 +49,10 @@ export type {
   RelationshipSeed,
   RelationshipTemplate,
   EvolutionRule,
+  MigrationRule,
+  MigrationCondition,
+  TraitRegistry,
+  TraitModifierRule,
   MemoryAdapter,
   RelationshipContext,
   RelationshipQueryResult,
@@ -76,7 +80,11 @@ export {
 
 // ── Evolution ───────────────────────────────────────
 export { EvolutionEngine } from './evolution/index.js';
-export type { EvolutionResult } from './evolution/index.js';
+export type { EvolutionResult, EvolutionEngineOptions } from './evolution/index.js';
+export { applyTraitModifiers, getBuiltinTraitRules } from './evolution/index.js';
+export { resolveImpactFromTemplates, getContextualDimensionDefaults } from './evolution/index.js';
+export { checkMigration, executeMigration } from './evolution/index.js';
+export type { MigrationResult } from './evolution/index.js';
 
 // ── Memory ──────────────────────────────────────────
 export { MemoryConsolidator } from './memory/index.js';
@@ -106,3 +114,9 @@ export {
   generateSoulRelationshipSection,
 } from './adapters/index.js';
 export type { LegacyRelationshipDefinition, OpenClawAdapterOptions } from './adapters/index.js';
+
+// ── Generation ──────────────────────────────────────
+export { RelationshipGenerator } from './generation/index.js';
+export type { GenerateOptions, GenerateResult, AgentInfo, LLMProvider } from './generation/index.js';
+export { ScenarioSuggester } from './generation/index.js';
+export type { SuggestOptions, SuggestedEvent } from './generation/index.js';

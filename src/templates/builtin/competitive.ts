@@ -14,4 +14,20 @@ export const competitive: RelationshipTemplate = {
     { on: 'competition.close_match', adjust: { respect: 0.1 } },
     { on: 'competition.decisive_victory', adjust: { rivalry: 0.15, respect: -0.1 } },
   ],
+  migrations: [
+    {
+      targetTemplate: 'rival',
+      when: [
+        { dimension: 'rivalry', operator: 'above', value: 0.8 },
+        { dimension: 'trust', operator: 'below', value: -0.1 },
+      ],
+    },
+    {
+      targetTemplate: 'peer',
+      when: [
+        { dimension: 'rivalry', operator: 'below', value: 0.15 },
+        { dimension: 'respect', operator: 'above', value: 0.5 },
+      ],
+    },
+  ],
 };

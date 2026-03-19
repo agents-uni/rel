@@ -10,7 +10,7 @@
   <a href="https://www.npmjs.com/package/@agents-uni/rel"><img src="https://img.shields.io/npm/v/@agents-uni/rel.svg" alt="npm version" /></a>
   <a href="https://github.com/agents-uni/rel/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@agents-uni/rel.svg" alt="license" /></a>
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="zero dependencies" />
-  <img src="https://img.shields.io/badge/tests-138%20passed-brightgreen" alt="tests" />
+  <img src="https://img.shields.io/badge/tests-163%20passed-brightgreen" alt="tests" />
 </p>
 
 ---
@@ -422,7 +422,7 @@ const seed2 = fromYamlObject({ from: 'a', to: 'b', type: 'peer', weight: 0.5 });
 | Class | Constructor | Description |
 |-------|------------|-------------|
 | `RelationshipGraph` | `(seeds?, options?)` | Multi-dimensional directed relationship graph |
-| `EvolutionEngine` | `(graph)` | Event → template rules → dimension adjustments |
+| `EvolutionEngine` | `(graph, options?)` | Event → template rules → dimension adjustments (supports traits, migration) |
 | `MemoryConsolidator` | `(options?)` | Short-term → long-term patterns + summaries |
 | `EmergenceDetector` | `(graph, options?)` | Interaction patterns → new relationships |
 | `OpenClawMemoryAdapter` | `(options?)` | OpenClaw session → Event |
@@ -458,6 +458,8 @@ const seed2 = fromYamlObject({ from: 'a', to: 'b', type: 'peer', weight: 0.5 });
 | `processEvent(from, to, eventType, options?)` | Process pairwise event, returns `EvolutionResult[]` |
 | `processGroupEvent(agentIds, eventType, options?)` | Multi-agent event (pairwise) |
 | `addGlobalRule(rule)` | Add global evolution rule |
+| `setTraitRegistry(traits)` | Update agent trait registry |
+| `getTraitRegistry()` | Get current trait registry |
 
 ### Utility Functions
 
@@ -478,6 +480,10 @@ const seed2 = fromYamlObject({ from: 'a', to: 'b', type: 'peer', weight: 0.5 });
 | `formatRelationshipContext(ctx)` | Markdown relationship report |
 | `generateSoulRelationshipSection(ctx, lang?)` | SOUL.md relationship section |
 | `generateReport(graph)` | Generate full relationship network report |
+| `applyTraitModifiers(adjust, from, to, event, traits)` | Modify dimension deltas based on agent traits |
+| `checkMigration(relationship)` | Check if relationship should migrate to another template |
+| `executeMigration(rel, from, to)` | Execute relationship template migration |
+| `resolveImpactFromTemplates(event, rel)` | Resolve event impact from template rules |
 
 ### Visualization Data
 
@@ -515,6 +521,84 @@ const report = generateReport(graph);
 - **clusters** -- Community partitions with cohesion scores per cluster
 - **hotspots** -- High-activity / high-volatility key relationships
 - **generatedAt** -- Report generation timestamp
+
+---
+
+## Relationship Migration
+
+When a relationship's dimensions cross certain thresholds, it can automatically migrate to a different template type. For example, an ally becomes a rival when trust drops below -0.2:
+
+```typescript
+import { EvolutionEngine } from '@agents-uni/rel';
+
+const engine = new EvolutionEngine(graph, {
+  onMigration: (result, relId) => {
+    console.log(`${relId}: ${result.fromTemplate} → ${result.toTemplate}`);
+  },
+});
+
+// Repeated betrayal events cause trust to plummet
+engine.processEvent('alice', 'bob', 'alliance.betrayed');
+// result.migration = { migrated: true, fromTemplate: 'ally', toTemplate: 'rival' }
+```
+
+Built-in migration rules:
+
+| From | To | Trigger |
+|------|----|---------|
+| ally | rival | trust < -0.2 |
+| ally | peer | loyalty < 0.1 and trust > 0.1 |
+| peer | ally | trust > 0.7 and affinity > 0.6 |
+| peer | competitive | trust < 0.0 and respect < 0.2 |
+| rival | ally | trust > 0.5 and rivalry < 0.2 |
+| competitive | rival | rivalry > 0.8 and trust < -0.1 |
+| competitive | peer | rivalry < 0.15 and respect > 0.5 |
+
+Custom templates can also define `migrations`.
+
+## Trait-Aware Evolution
+
+Agent personality traits influence how much relationship dimensions change:
+
+```typescript
+const engine = new EvolutionEngine(graph, {
+  traits: {
+    alice: { empathy: 0.9, analytical: 0.7 },
+    bob: { ambition: 0.8, deception: 0.6 },
+  },
+});
+
+// High-empathy alice loses less trust in conflict events
+engine.processEvent('alice', 'bob', 'conflict.escalated');
+```
+
+Built-in trait rules:
+- **empathy ≥ 0.7** (source): negative dimension deltas × 0.6 (more forgiving)
+- **ambition ≥ 0.8** (target): rivalry/competition deltas × 1.4 (more aggressive)
+- **deception ≥ 0.7** (source): trust deltas × 0.5 (harder to gain trust)
+
+## Relationship Generation
+
+Auto-generate relationship seeds from natural language descriptions:
+
+```typescript
+import { RelationshipGenerator, ScenarioSuggester } from '@agents-uni/rel';
+
+// Generate relationships
+const generator = new RelationshipGenerator();
+const result = await generator.generate('palace drama with 7 concubines', agents, {
+  type: 'competitive',
+  language: 'en',
+});
+// result.seeds: [{ from, to, type, dimensions }]
+// result.reasoning: ['huafei has highest rank, forms superior relationship...']
+
+// Scenario suggestions
+const suggester = new ScenarioSuggester(graph);
+const events = suggester.suggest(5);
+// [{ eventType: 'conflict.escalated', from: 'zhenhuan', to: 'huafei',
+//    reason: 'High rivalry tension', dramaPotential: 0.85 }]
+```
 
 ---
 
@@ -610,7 +694,7 @@ export const yourTemplate: RelationshipTemplate = {
 export { yourTemplate } from './your-template.js';
 ```
 
-4. **Run tests** `npm test` — ensure all 138+ tests pass
+4. **Run tests** `npm test` — ensure all 163+ tests pass
 5. **Submit PR**, title format: `feat(template): add your-template`
 
 ### Template Design Guidelines
@@ -634,6 +718,7 @@ export { yourTemplate } from './your-template.js';
 ## Related Projects
 
 - [**@agents-uni/core**](https://github.com/agents-uni/core) -- Agent organization protocol layer
+- [**@agents-uni/unis**](https://github.com/agents-uni/unis) -- Curated universe templates (5 ready-to-play scenarios)
 - [**@agents-uni/zhenhuan**](https://github.com/agents-uni/zhenhuan) -- Palace drama agent competition
 - [**OpenClaw**](https://github.com/anthropics/openclaw) -- Agent runtime
 
