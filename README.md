@@ -7,8 +7,9 @@
 </p>
 
 <p align="center">
+  <a href="https://github.com/agents-uni/rel/actions/workflows/ci.yml"><img src="https://github.com/agents-uni/rel/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://www.npmjs.com/package/@agents-uni/rel"><img src="https://img.shields.io/npm/v/@agents-uni/rel.svg" alt="npm version" /></a>
-  <a href="https://github.com/agents-uni/rel/blob/main/LICENSE"><img src="https://img.shields.io/npm/l/@agents-uni/rel.svg" alt="license" /></a>
+  <a href="https://github.com/agents-uni/rel/blob/master/LICENSE"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="license" /></a>
   <img src="https://img.shields.io/badge/dependencies-0-brightgreen" alt="zero dependencies" />
   <img src="https://img.shields.io/badge/tests-163%20passed-brightgreen" alt="tests" />
 </p>
